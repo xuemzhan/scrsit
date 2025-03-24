@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.reference import Reference
+from scrsit.core.document.base.reference import Reference
 
 class TestReference(unittest.TestCase):
     def test_reference_creation(self):

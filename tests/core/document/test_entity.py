@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.entity import Entity
+from scrsit.core.document.base.entity import Entity
 
 class TestEntity(unittest.TestCase):
     def test_entity_creation(self):

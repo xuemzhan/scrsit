@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.link import Link
+from scrsit.core.document.base.link import Link
 
 class TestLink(unittest.TestCase):
     def test_link_creation(self):

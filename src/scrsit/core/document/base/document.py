@@ -7,7 +7,7 @@ from .entity import Entity
 from .relationship import Relationship
 from .formula import Formula
 from .picture import Picture
-from .table import Table
+from ..table import Table
 from .reference import Reference
 from .link import Link
 from .element import Element

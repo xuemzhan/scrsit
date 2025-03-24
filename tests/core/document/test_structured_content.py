@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.structured_content import StructuredContent, OrderedList
+from scrsit.core.document.base.structured_content import StructuredContent, OrderedList
 
 class TestStructuredContent(unittest.TestCase):
     def test_structured_content_creation(self):

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from .structured_content import StructuredContent
+from .base.structured_content import StructuredContent
 
 class Table:
     """

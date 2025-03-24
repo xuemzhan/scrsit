@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.picture import Picture
+from scrsit.core.document.base.picture import Picture
 
 class TestPicture(unittest.TestCase):
     def test_picture_creation(self):

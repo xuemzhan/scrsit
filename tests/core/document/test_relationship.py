@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.relationship import Relationship
+from scrsit.core.document.base.relationship import Relationship
 
 class TestRelationship(unittest.TestCase):
     def test_relationship_creation(self):

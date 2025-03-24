@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.formula import Formula
+from scrsit.core.document.base.formula import Formula
 
 class TestFormula(unittest.TestCase):
     def test_formula_creation(self):

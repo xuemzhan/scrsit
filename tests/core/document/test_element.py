@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.element import Element
+from scrsit.core.document.base.element import Element
 
 class TestElement(unittest.TestCase):
     def test_element_creation(self):

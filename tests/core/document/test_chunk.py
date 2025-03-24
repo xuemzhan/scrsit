@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.chunk import Chunk
+from scrsit.core.document.base.chunk import Chunk
 
 class TestChunk(unittest.TestCase):
     def test_chunk_creation(self):

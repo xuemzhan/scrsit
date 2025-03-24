@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.ordered_list import OrderedList
+from scrsit.core.document.base.ordered_list import OrderedList
 
 class TestOrderedList(unittest.TestCase):
     def test_ordered_list_creation(self):
