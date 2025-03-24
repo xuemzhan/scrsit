@@ -1,0 +1,17 @@
+[project]
+name = "scrsit"
+version = "0.1.0"
+description = "Smart Customer Requirements Interpretation Tool"
+authors = [
+    {name = "Your Name",email = "you@example.com"}
+]
+license = {text = "Apache License Version 2.0"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
