@@ -1,7 +1,13 @@
+import os
+import sys
 import base64
 from typing import Optional, List
 
-from scrsit.core.document.base import Element
+# 获取项目根目录
+# project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# sys.path.append(project_root)
+
+from element import Element
 
 class Formula(Element):
     """

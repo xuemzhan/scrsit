@@ -1,5 +1,5 @@
 import unittest
-from scrsit.core.document.table import Table
+from scrsit.core.document.base.table import Table
 
 class TestTable(unittest.TestCase):
     def test_table_creation(self):
