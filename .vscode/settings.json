@@ -8,5 +8,6 @@
     },
     "terminal.integrated.env.osx": {
       "PYTHONPATH": "${workspaceFolder}"
-    }
+    },
+    "python.terminal.executeInFileDir": false
   }

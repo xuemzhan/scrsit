@@ -1,12 +1,2 @@
-
-__all__ = [
-    "analyzer",
-    "comparator",
-    "document",
-    "knowledge_base",
-    "parser",
-    "proposal_generator",
-    "requirement",
-    "reviewer",
-    "utils",
-]
+# src/scrsit/core/__init__.py
+# 核心框架包初始化文件

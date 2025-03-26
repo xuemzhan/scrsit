@@ -1,6 +1,5 @@
 # src/scrsit/core/interfaces/__init__.py
 # 插件接口定义包
-
 from base_analyzer import BaseAnalyzer
 from base_chunker import BaseChunker
 from base_document_store import BaseDocumentStore
@@ -14,6 +13,8 @@ from base_proposal_generator import BaseProposalGenerator
 from base_reviewer import BaseReviewer
 from base_structured_store import BaseStructuredStore
 from base_vector_store import BaseVectorStore
+
+from typing import Dict, Optional, Any
 
 # 可以定义一个所有插件接口的基类，如果需要统一处理
 class BasePluginInterface:
