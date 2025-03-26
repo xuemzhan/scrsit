@@ -1,18 +1,18 @@
 # src/scrsit/core/interfaces/__init__.py
 # 插件接口定义包
-from base_analyzer import BaseAnalyzer
-from base_chunker import BaseChunker
-from base_document_store import BaseDocumentStore
-from base_embedder import BaseEmbedder
-from base_knowledge_provider import BaseKnowledgeProvider
-from base_llm_provider import BaseLLMProvider
-from base_multimodal_provider import BaseMultimodalProvider
-from base_ocr_provider import BaseOCRProvider
-from base_parser import BaseParser
-from base_proposal_generator import BaseProposalGenerator
-from base_reviewer import BaseReviewer
-from base_structured_store import BaseStructuredStore
-from base_vector_store import BaseVectorStore
+from src.scrsit.core.interfaces.base_analyzer import BaseAnalyzer
+from src.scrsit.core.interfaces.base_chunker import BaseChunker
+from src.scrsit.core.interfaces.base_document_store import BaseDocumentStore
+from src.scrsit.core.interfaces.base_embedder import BaseEmbedder
+from src.scrsit.core.interfaces.base_knowledge_provider import BaseKnowledgeProvider
+from src.scrsit.core.interfaces.base_llm_provider import BaseLLMProvider
+from src.scrsit.core.interfaces.base_multimodal_provider import BaseMultimodalProvider
+from src.scrsit.core.interfaces.base_ocr_provider import BaseOCRProvider
+from src.scrsit.core.interfaces.base_parser import BaseParser
+from src.scrsit.core.interfaces.base_proposal_generator import BaseProposalGenerator
+from src.scrsit.core.interfaces.base_reviewer import BaseReviewer
+from src.scrsit.core.interfaces.base_structured_store import BaseStructuredStore
+from src.scrsit.core.interfaces.base_vector_store import BaseVectorStore
 
 from typing import Dict, Optional, Any
 

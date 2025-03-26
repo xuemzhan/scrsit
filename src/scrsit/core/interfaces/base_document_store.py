@@ -1,6 +1,6 @@
 # src/scrsit/core/interfaces/base_document_store.py
 import abc
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 from src.scrsit.core.document.models import Document
 

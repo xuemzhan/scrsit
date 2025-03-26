@@ -26,4 +26,4 @@ class BaseKnowledgeProvider(abc.ABC):
         """
         pass
 
-from base_llm_provider import ProviderError # 导入共享的异常类
+from src.scrsit.core.interfaces.base_llm_provider import ProviderError # 导入共享的异常类

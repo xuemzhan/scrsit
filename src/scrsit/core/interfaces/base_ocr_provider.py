@@ -3,7 +3,7 @@ import abc, logging
 from typing import Union, List
 from PIL import Image # 使用 PIL 处理图片
 
-from base_llm_provider import ProviderError # 导入共享的异常类
+from src.scrsit.core.interfaces.base_llm_provider import ProviderError # 导入共享的异常类
 
 logger = logging.getLogger(__name__)
 

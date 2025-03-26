@@ -14,9 +14,9 @@ from src.scrsit.core.config.settings import AppSettings, get_settings
 from src.scrsit.core.exceptions import (
     PluginNotFoundError, PluginLoadError, PluginConfigurationError, ConfigurationError
 )
-from scrsit.core.interfaces import BasePluginInterface # 可选的基础接口
+from src.scrsit.core.interfaces import BasePluginInterface # 可选的基础接口
 # 显式导入所有需要的接口类型
-from scrsit.core.interfaces import (
+from src.scrsit.core.interfaces import (
     BaseParser, BaseChunker, BaseEmbedder, BaseAnalyzer,
     BaseLLMProvider, BaseOCRProvider, BaseMultimodalProvider,
     BaseDocumentStore, BaseVectorStore, BaseStructuredStore,
@@ -307,3 +307,28 @@ class PluginManager:
             type_key = next((k for k, v in PLUGIN_GROUPS.items() if v == interface_cls), interface_cls.__name__)
             available[type_key] = sorted(list(plugins.keys()))
         return dict(available)
+    
+if __name__ == "__main__":
+    import sys
+    logging.basicConfig(level=logging.DEBUG)
+    
+    try:
+        # 初始化插件管理器 (注意：在实际使用中可能需要传递自定义的设置)
+        manager = PluginManager()
+    
+        # 列举已加载的插件
+        available_plugins = manager.list_available_plugins()
+        print("已加载的插件列表:")
+        for plugin_type, plugins in available_plugins.items():
+            print(f"{plugin_type}: {plugins}")
+    
+        # 示例：尝试获取默认解析器
+        try:
+            parser = manager.get_parser()
+            print(f"默认解析器: {parser.__class__.__name__}")
+            # 这里可以添加对 parser 的进一步测试，例如调用其解析方法
+        except Exception as pe:
+            print("获取默认解析器失败:", pe, file=sys.stderr)
+    
+    except Exception as e:
+        print("插件管理器加载失败:", e, file=sys.stderr)

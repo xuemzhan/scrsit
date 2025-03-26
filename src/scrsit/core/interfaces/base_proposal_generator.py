@@ -1,6 +1,7 @@
 # src/scrsit/core/interfaces/base_proposal_generator.py
 import abc
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from pydantic import BaseModel
 
 from src.scrsit.core.document.models import Document # 或其他表示需求的数据结构
 
@@ -36,5 +37,3 @@ class BaseProposalGenerator(abc.ABC):
         pass
 
 from src.scrsit.core.exceptions import WorkflowError
-from pydantic import BaseModel
-from typing import Optional
