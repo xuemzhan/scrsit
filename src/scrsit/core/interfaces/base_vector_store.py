@@ -1,6 +1,7 @@
 # src/scrsit/core/interfaces/base_vector_store.py
 import abc
 from typing import List, Tuple, Optional, Dict, Any
+from pydantic import BaseModel # 用于定义结果类
 
 from src.scrsit.core.document.models import Chunk # 通常存储 Chunk 的 Embedding
 
@@ -91,4 +92,3 @@ class BaseVectorStore(abc.ABC):
 
 
 from src.scrsit.core.exceptions import StorageError # 导入共享的异常类
-from pydantic import BaseModel # 用于定义结果类
