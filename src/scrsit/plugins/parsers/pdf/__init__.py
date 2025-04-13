@@ -1,5 +1,12 @@
 # src/scrsit/plugins/parsers/pdf/__init__.py
-"""导出 PDF 解析器插件类。"""
-from src.scrsit.plugins.parsers.pdf import PdfMinerUParser
+from .parser import PdfParser
+from .config import PdfParserSettings
+from .exceptions import PdfParsingError, MagicPdfExecutionError, MagicPdfOutputError
 
-__all__ = ["PdfMinerUParser"]
+__all__ = [
+    "PdfParser",
+    "PdfParserSettings",
+    "PdfParsingError",
+    "MagicPdfExecutionError",
+    "MagicPdfOutputError",
+]

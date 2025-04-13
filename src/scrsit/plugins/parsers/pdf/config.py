@@ -1,52 +1,47 @@
 # src/scrsit/plugins/parsers/pdf/config.py
-"""PDF 解析器插件 (MinerU/magic_pdf) 的配置模型。"""
+import tempfile
+from pydantic_settings import BaseSettings
+from pydantic import Field, DirectoryPath, FilePath
+from typing import Optional
 
-from typing import Dict, Any, Optional
-from pydantic import Field, BaseModel
-
-# 如果核心框架定义了 PluginSetting，则继承它
-# from scrsit.core.config.settings import PluginSetting
-# class PdfParserConfig(PluginSetting):
-
-# 否则，直接继承 BaseModel
-class PdfParserConfig(BaseModel):
+class PdfParserSettings(BaseSettings):
     """
-    配置 PdfMinerUParser 的参数。
+    PDF 解析器插件的配置模型。
+    将从环境变量或 .env 文件加载，前缀为 'SCRSIT_PLUGIN_PDF_'。
     """
-    # MinerU/magic_pdf 相关配置
-    # split_by_page: bool = Field(
-    #     default=True,
-    #     description="是否按页调用 magic_pdf 进行处理。这有助于处理大型文档和提供进度。"
-    # )
-    magic_pdf_options: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="传递给 magic_pdf.process 的额外参数字典。"
-        "例如: {'output_markdown': True, 'visualize_output': False}"
+    # --- magic-pdf 配置 ---
+    magic_pdf_path: FilePath = Field(
+        description="magic-pdf 可执行文件的完整路径。"
     )
-    # 请根据 magic_pdf 的实际可用参数调整这里的默认值和描述
-
-    # 健壮性配置
-    retry_attempts: int = Field(
-        default=3,
-        description="调用 magic_pdf 失败时的最大重试次数。"
-    )
-    retry_delay_seconds: float = Field(
-        default=2.0,
-        description="每次重试之间的延迟时间（秒）。"
-    )
-    page_batch_size: int = Field(
-        default=1, # 默认为1，即逐页处理以提供更精细的进度和错误定位
-        description="当按页处理时，一次传递给 magic_pdf 的页面数量。"
-    )
-    save_intermediate_files: bool = Field(
-        default=False,
-        description="是否在处理失败或调试时保存中间文件（例如，送入magic_pdf的临时PDF）。"
-    )
-    temp_file_dir: Optional[str] = Field(
+    magic_pdf_output_base_dir: Optional[DirectoryPath] = Field(
         default=None,
-        description="用于存储临时文件（如从内存数据创建的PDF）的目录。默认为系统临时目录。"
+        description="magic-pdf 输出文件的基础目录。如果为 None，将使用系统临时目录。"
+    )
+    magic_pdf_timeout_seconds: int = Field(
+        default=300, # 默认 5 分钟超时
+        description="调用 magic-pdf 的最大等待时间（秒）。"
+    )
+    magic_pdf_extra_args: Optional[str] = Field(
+        default=None,
+        description="传递给 magic-pdf 的额外命令行参数字符串。"
+    )
+
+    # --- 文件处理配置 ---
+    large_file_threshold_mb: Optional[float] = Field(
+        default=500.0, # 默认 500MB
+        description="文件大小阈值（MB）。超过此大小的文件在处理前会记录警告。设为 None 则不检查。"
+    )
+    # 注意：实际的文件切分逻辑在此未实现，magic-pdf 本身可能处理大文件，
+    # 或者需要更复杂的预处理步骤。这里仅作大小检查示例。
+    cleanup_magic_pdf_output: bool = Field(
+        default=True,
+        description="是否在解析完成后自动清理 magic-pdf 的输出目录。"
     )
 
     class Config:
-        # Pydantic V2 配置方式
-        extra = 'ignore' # 忽略settings中未在此定义的额外字段
+        env_prefix = 'SCRSIT_PLUGIN_PDF_' # 环境变量前缀
+        env_file = '.env'               # 如果使用 .env 文件
+        extra = 'ignore'                # 忽略未定义的字段
+
+# 实例化一个默认配置（可选，用于测试或默认行为）
+# default_pdf_parser_settings = PdfParserSettings()
