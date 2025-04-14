@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Union, IO, List, Dict, Any, Tuple, Optional
@@ -17,7 +18,7 @@ from src.scrsit.core.document.models import (
     StructuredContent # 结构化内容可能需要更复杂的逻辑从 layout 构建
 )
 from src.scrsit.core.interfaces.base_parser import BaseParser
-from src.scrsit.core.exceptions import ParsingError # 使用核心定义的通用解析错误
+from src.scrsit.core.exceptions import ParsingError, PluginError # 使用核心定义的通用解析错误
 from src.scrsit.core.utils.helpers import generate_uuid # 引入 UUID 生成器
 
 from .config import PdfParserSettings
@@ -504,3 +505,132 @@ class PdfParser(BaseParser):
                         best_match = det
 
         return best_match
+    
+# ================================================================
+#  测试代码区域
+# ================================================================
+if __name__ == "__main__":
+
+    # 配置基本的日志记录器，以便在测试期间看到 parser 的输出
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__) # 获取当前模块的 logger
+
+    print("=" * 30)
+    print("开始测试 PdfParser 类")
+    print("=" * 30)
+
+    # --- 配置参数 ---
+    # !! 重要：根据你的环境修改此路径 !!
+    MAGIC_PDF_EXECUTABLE_PATH = "/root/miniconda3/envs/scrsit/bin/magic-pdf"
+    # 相对于当前 parser.py 文件的路径
+    CURRENT_DIR = Path(__file__).parent
+    TEST_PDF_FILENAME = "example1.pdf"
+    TEST_PDF_PATH = CURRENT_DIR / TEST_PDF_FILENAME
+
+    # --- 检查前提条件 ---
+    magic_pdf_path_obj = Path(MAGIC_PDF_EXECUTABLE_PATH)
+    if not magic_pdf_path_obj.is_file() or not os.access(magic_pdf_path_obj, os.X_OK):
+        print(f"错误：指定的 magic-pdf 路径无效或不可执行: {MAGIC_PDF_EXECUTABLE_PATH}")
+        print("请确保路径正确且文件有执行权限。")
+        sys.exit(1)
+
+    if not TEST_PDF_PATH.is_file():
+        print(f"错误：测试文件未找到: {TEST_PDF_PATH}")
+        print(f"请确保 '{TEST_PDF_FILENAME}' 文件与 parser.py 在同一目录下。")
+        sys.exit(1)
+
+    print(f"使用的 Magic-PDF 路径: {MAGIC_PDF_EXECUTABLE_PATH}")
+    print(f"测试的 PDF 文件: {TEST_PDF_PATH}")
+
+    # --- 创建 Parser 实例 ---
+    # 使用特定配置实例化 Settings
+    # 为了方便调试，可以选择不清理 magic-pdf 的输出
+    test_settings = PdfParserSettings(
+        magic_pdf_path=MAGIC_PDF_EXECUTABLE_PATH,
+        magic_pdf_output_base_dir= CURRENT_DIR / "test", # 可选：指定输出目录
+        cleanup_magic_pdf_output=False, # 设置为 False 方便查看中间结果
+        magic_pdf_timeout_seconds=120, # 设置合适的超时时间，例如 2 分钟
+    )
+    print(f"使用的解析器配置:")
+    print(f"  magic_pdf_path={test_settings.magic_pdf_path}")
+    print(f"  magic_pdf_output_base_dir={test_settings.magic_pdf_output_base_dir or '系统临时目录'}")
+    print(f"  cleanup_magic_pdf_output={test_settings.cleanup_magic_pdf_output}")
+    print(f"  magic_pdf_timeout_seconds={test_settings.magic_pdf_timeout_seconds}")
+    
+    sys.exit(1)
+
+    # 实例化 Parser
+    try:
+        parser = PdfParser(settings=test_settings)
+        print("\nPdfParser 实例化成功。")
+    except PluginError as e:
+        print(f"\n错误：PdfParser 实例化失败: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n错误：PdfParser 实例化时发生意外错误: {e}")
+        sys.exit(1)
+
+
+    # --- 执行解析 ---
+    print("\n开始调用 parser.parse()...")
+    document_result: Optional[Document] = None
+    success = False
+    try:
+        # 调用 parse 方法，传入 PDF 文件路径
+        document_result = parser.parse(str(TEST_PDF_PATH))
+
+        # --- 结果验证 (基础) ---
+        print("\n解析成功完成！")
+        if document_result:
+            print(f"  文档 ID: {document_result.id}")
+            print(f"  文档名称: {document_result.name}")
+            print(f"  文档类型: {document_result.type}")
+            print(f"  校验和: {document_result.checksum}")
+            print(f"  提取内容长度: {document_result.length} 字符")
+            print(f"  提取图片数量: {len(document_result.pictures)}")
+            print(f"  提取表格数量: {len(document_result.tables)}")
+            print(f"  提取公式数量: {len(document_result.formulas)}")
+            print(f"  元数据摘要: { {k: v for k, v in document_result.metadata.items() if k != 'page_dimensions'} }") # 打印部分元数据
+
+            # 添加一些基本断言
+            assert isinstance(document_result, Document)
+            assert document_result.id is not None
+            assert document_result.name == TEST_PDF_FILENAME
+            assert document_result.type == DocumentType.PDF
+            assert document_result.length is not None and document_result.length >= 0
+            assert isinstance(document_result.pictures, list)
+            assert isinstance(document_result.tables, list)
+            assert isinstance(document_result.formulas, list)
+
+            print("\n基本结果验证通过。")
+            success = True
+        else:
+            print("\n错误：解析方法返回了 None，预期应返回 Document 对象。")
+
+    # --- 错误处理 ---
+    except FileNotFoundError as e:
+         print(f"\n解析失败：文件未找到错误 - {e}")
+    except MagicPdfExecutionError as e:
+         print(f"\n解析失败：Magic-PDF 执行错误 - {e}")
+    except MagicPdfOutputError as e:
+         print(f"\n解析失败：Magic-PDF 输出解析错误 - {e}")
+    except PdfParsingError as e: # 捕获插件定义的特定错误
+         print(f"\n解析失败：PDF 解析错误 - {e}")
+    except ParsingError as e: # 捕获核心定义的通用解析错误
+         print(f"\n解析失败：通用解析错误 - {e}")
+    except Exception as e: # 捕获其他意外错误
+         print(f"\n解析失败：发生意外错误 - {type(e).__name__}: {e}")
+         # 可以选择打印更详细的堆栈跟踪信息
+         # import traceback
+         # traceback.print_exc()
+
+    # --- 测试总结 ---
+    print("\n" + "=" * 30)
+    if success:
+        print("测试结果: PASS")
+        print("=" * 30)
+        sys.exit(0) # 成功退出
+    else:
+        print("测试结果: FAIL")
+        print("=" * 30)
+        sys.exit(1) # 失败退出
