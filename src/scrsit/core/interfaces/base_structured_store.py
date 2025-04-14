@@ -120,5 +120,3 @@ class BaseStructuredStore(abc.ABC):
             StorageError: 如果删除过程中发生错误。
         """
         pass
-
-from src.scrsit.core.exceptions import StorageError # 导入共享的异常类

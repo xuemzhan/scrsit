@@ -89,6 +89,3 @@ class BaseVectorStore(abc.ABC):
             NotImplementedError: 如果子类不支持此方法。
         """
         raise NotImplementedError(f"{self.__class__.__name__} 不支持 delete_by_doc_id 方法。")
-
-
-from src.scrsit.core.exceptions import StorageError # 导入共享的异常类
