@@ -103,3 +103,7 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# example
+# This is an example of a .gitignore file for Python projects.
+example*/*

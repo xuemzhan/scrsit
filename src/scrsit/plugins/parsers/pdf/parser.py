@@ -125,8 +125,8 @@ class PdfParser(BaseParser):
 
             # 5. 解析 magic-pdf 输出
             logger.info(f"开始解析 magic-pdf 输出文件于: {output_dir_path}")
-            model_json_path = output_dir_path / f"{input_path.stem}_model.json"
-            middle_json_path = output_dir_path / f"{input_path.stem}_middle.json"
+            model_json_path = output_dir_path / f"{input_path.stem}/auto/{input_path.stem}_model.json"
+            middle_json_path = output_dir_path / f"{input_path.stem}/auto/{input_path.stem}_middle.json"
 
             if not model_json_path.is_file():
                  raise MagicPdfOutputError(f"未找到 magic-pdf model 输出文件: {model_json_path}")
@@ -178,19 +178,42 @@ class PdfParser(BaseParser):
             elif output_dir_path and not temp_output_obj:
                  logger.debug(f"未清理指定的 magic-pdf 输出目录: {output_dir_path}")
 
+    async def _log_stream(self, stream: Optional[asyncio.StreamReader], log_level: int):
+        """异步读取流并逐行记录日志。"""
+        if not stream:
+            return
+        while True:
+            try:
+                # 使用 readuntil(b'\n') 来确保获取完整行，或者 read(n)
+                # read(100) 可能更健壮，因为它不会因为没有换行符而卡住
+                # readline() 也可以，但如果一行超长且无换行，可能会消耗大量内存
+                line_bytes = await stream.read(2048) # 一次最多读 2KB
+                if not line_bytes: # EOF
+                    break
+                line = line_bytes.decode('utf-8', errors='ignore').rstrip()
+                if line: # 避免记录空行
+                    # 根据日志级别记录
+                    logger.log(log_level, f"[magic-pdf] {line}")
+            except asyncio.CancelledError:
+                logger.debug("[magic-pdf] Stream logging cancelled.")
+                break
+            except Exception as e:
+                logger.error(f"Error reading magic-pdf stream: {e}", exc_info=True)
+                break # 出错时退出循环
+
 
     async def _run_magic_pdf(self, input_pdf_path: Path, output_dir_path: Path):
-        """异步执行 magic-pdf 命令。"""
+        """异步执行 magic-pdf 命令，并流式记录其 stdout 和 stderr。"""
         command = [
             str(self._settings.magic_pdf_path),
-            str(input_pdf_path),
+            "-p", str(input_pdf_path),
             "--output-dir", str(output_dir_path)
         ]
-        # 添加额外参数（如果提供）
         if self._settings.magic_pdf_extra_args:
-             command.extend(self._settings.magic_pdf_extra_args.split())
+            command.extend(self._settings.magic_pdf_extra_args.split())
 
         logger.info(f"执行命令: {' '.join(command)}")
+        logger.info(f"开始流式记录 magic-pdf 输出...")
 
         process = await asyncio.create_subprocess_exec(
             *command,
@@ -198,38 +221,84 @@ class PdfParser(BaseParser):
             stderr=asyncio.subprocess.PIPE
         )
 
+        # 创建并发任务来读取 stdout 和 stderr
+        # 使用 lambda 避免 log_level 在循环中可能出现的意外绑定问题 (虽然在这里不直接相关，但是个好习惯)
+        stdout_task = asyncio.create_task(
+            self._log_stream(process.stdout, logging.INFO),
+            name="magic_pdf_stdout_logger"
+        )
+        stderr_task = asyncio.create_task(
+            self._log_stream(process.stderr, logging.WARNING), # stderr 通常记录警告或错误
+            name="magic_pdf_stderr_logger"
+        )
+
         try:
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
+            # 等待进程结束以及两个日志流读取任务完成
+            # process.wait() 返回进程的退出码
+            _, _, returncode = await asyncio.wait_for(
+                asyncio.gather(stdout_task, stderr_task, process.wait()),
                 timeout=self._settings.magic_pdf_timeout_seconds
             )
-            stdout_str = stdout.decode('utf-8', errors='ignore') if stdout else ""
-            stderr_str = stderr.decode('utf-8', errors='ignore') if stderr else ""
+            # gather 返回其 awaitables 的结果列表，我们只关心 process.wait() 的结果，即退出码
 
-            if process.returncode == 0:
-                logger.info(f"magic-pdf 执行成功。stdout:\n{stdout_str}")
-                if stderr_str:
-                     logger.warning(f"magic-pdf 执行有 stderr 输出:\n{stderr_str}")
+            logger.info(f"magic-pdf 进程已结束，退出码: {returncode}")
+
+            if returncode == 0:
+                logger.info(f"magic-pdf 执行成功完成。")
             else:
-                logger.error(f"magic-pdf 执行失败。Return Code: {process.returncode}")
-                logger.error(f"stdout:\n{stdout_str}")
-                logger.error(f"stderr:\n{stderr_str}")
+                # stderr 应该已经被 _log_stream 记录了
+                logger.error(f"magic-pdf 执行失败。返回非零退出码: {returncode}")
+                # 即使有错误，日志也已记录，这里只抛出指示性异常
                 raise MagicPdfExecutionError(
-                    f"magic-pdf 返回非零退出码: {process.returncode}. Stderr: {stderr_str[:500]}..." # 限制错误信息长度
+                    f"magic-pdf 返回非零退出码: {returncode}. 详细错误请查看之前的日志。"
                 )
+
         except asyncio.TimeoutError:
             logger.error(f"magic-pdf 执行超时 ({self._settings.magic_pdf_timeout_seconds} 秒)")
+            # 取消日志读取任务
+            stdout_task.cancel()
+            stderr_task.cancel()
+            # 尝试终止进程
             try:
-                 process.terminate() # 尝试终止进程
-                 await process.wait() # 等待终止完成
+                logger.warning("尝试终止超时的 magic-pdf 进程...")
+                process.terminate()
+                # 短暂等待终止完成，避免资源泄露，但不要等太久
+                await asyncio.wait_for(process.wait(), timeout=5.0)
+                logger.info("超时的 magic-pdf 进程已终止。")
             except ProcessLookupError:
-                 logger.warning("尝试终止超时进程时，进程已不存在。")
+                logger.warning("尝试终止超时进程时，进程已不存在。")
+            except asyncio.TimeoutError:
+                logger.warning("等待超时进程终止时再次超时，可能需要手动清理。")
             except Exception as term_err:
-                 logger.warning(f"终止超时进程时出错: {term_err}")
+                logger.warning(f"终止超时进程时出错: {term_err}")
+            # 确保gather被取消（虽然超时应该已经处理了）
+            await asyncio.gather(stdout_task, stderr_task, return_exceptions=True)
             raise MagicPdfExecutionError("magic-pdf 执行超时")
+        except asyncio.CancelledError:
+             logger.warning("magic-pdf 执行被取消。")
+             # 确保子任务和进程也被取消/终止
+             stdout_task.cancel()
+             stderr_task.cancel()
+             if process.returncode is None: # 进程仍在运行
+                 process.terminate()
+                 await asyncio.gather(stdout_task, stderr_task, process.wait(), return_exceptions=True)
+             raise # 重新抛出取消错误
         except Exception as e:
-            logger.error(f"执行 magic-pdf 过程中发生异常: {e}", exc_info=True)
+            logger.error(f"执行 magic-pdf 过程中发生意外异常: {e}", exc_info=True)
+             # 确保子任务被取消，以防万一
+            stdout_task.cancel()
+            stderr_task.cancel()
+            if process.returncode is None: # 如果进程仍在运行
+                process.terminate()
+            # 确保gather被取消
+            await asyncio.gather(stdout_task, stderr_task, return_exceptions=True)
+            # 抛出原始异常包装后的错误
             raise MagicPdfExecutionError(f"执行 magic-pdf 时发生异常: {e}") from e
+        finally:
+             # 确保日志任务最终完成或被取消，即使有异常
+             # (通常 gather 已经处理了，但多一层保障)
+             await asyncio.gather(stdout_task, stderr_task, return_exceptions=True)
+             logger.info("magic-pdf 流式日志记录结束。")
 
 
     def _prepare_output_directory(self, input_path: Path) -> Tuple[Path, Optional[tempfile.TemporaryDirectory]]:
@@ -524,7 +593,7 @@ if __name__ == "__main__":
     MAGIC_PDF_EXECUTABLE_PATH = "/root/miniconda3/envs/scrsit/bin/magic-pdf"
     # 相对于当前 parser.py 文件的路径
     CURRENT_DIR = Path(__file__).parent
-    TEST_PDF_FILENAME = "example1.pdf"
+    TEST_PDF_FILENAME = "example2.pdf"
     TEST_PDF_PATH = CURRENT_DIR / TEST_PDF_FILENAME
 
     # --- 检查前提条件 ---
@@ -549,15 +618,13 @@ if __name__ == "__main__":
         magic_pdf_path=MAGIC_PDF_EXECUTABLE_PATH,
         magic_pdf_output_base_dir= CURRENT_DIR / "test", # 可选：指定输出目录
         cleanup_magic_pdf_output=False, # 设置为 False 方便查看中间结果
-        magic_pdf_timeout_seconds=120, # 设置合适的超时时间，例如 2 分钟
+        magic_pdf_timeout_seconds=1800, # 设置合适的超时时间，例如 2 分钟
     )
     print(f"使用的解析器配置:")
     print(f"  magic_pdf_path={test_settings.magic_pdf_path}")
     print(f"  magic_pdf_output_base_dir={test_settings.magic_pdf_output_base_dir or '系统临时目录'}")
     print(f"  cleanup_magic_pdf_output={test_settings.cleanup_magic_pdf_output}")
     print(f"  magic_pdf_timeout_seconds={test_settings.magic_pdf_timeout_seconds}")
-    
-    sys.exit(1)
 
     # 实例化 Parser
     try:
@@ -569,7 +636,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n错误：PdfParser 实例化时发生意外错误: {e}")
         sys.exit(1)
-
 
     # --- 执行解析 ---
     print("\n开始调用 parser.parse()...")

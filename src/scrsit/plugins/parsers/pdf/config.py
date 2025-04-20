@@ -22,12 +22,18 @@ class PdfParserSettings(BaseSettings):
         description="magic-pdf 输出文件的基础目录。如果为 None，将使用系统临时目录。"
     )
     magic_pdf_timeout_seconds: int = Field(
-        default=300, # 默认 5 分钟超时
+        default=3600, # 默认 30 分钟超时
         description="调用 magic-pdf 的最大等待时间（秒）。"
     )
     magic_pdf_extra_args: Optional[str] = Field(
         default=None,
         description="传递给 magic-pdf 的额外命令行参数字符串。"
+    )
+
+    magic_pdf_result_dir: Optional[DirectoryPath] = Field(
+        default=None,
+        description="magic-pdf 结果目录。"
+        # 注意：此字段在实际使用中可能会被覆盖或动态生成。
     )
 
     # --- 文件处理配置 ---
