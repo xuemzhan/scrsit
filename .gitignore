@@ -1,6 +1,7 @@
 #生成python .gitignore文件
 # Byte-compiled / optimized / DLL files
 __pycache__/
+example*/
 *.py[cod]
 *$py.class
 

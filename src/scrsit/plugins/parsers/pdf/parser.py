@@ -21,8 +21,8 @@ from src.scrsit.core.interfaces.base_parser import BaseParser
 from src.scrsit.core.exceptions import ParsingError, PluginError # 使用核心定义的通用解析错误
 from src.scrsit.core.utils.helpers import generate_uuid # 引入 UUID 生成器
 
-from .config import PdfParserSettings
-from .exceptions import PdfParsingError, MagicPdfExecutionError, MagicPdfOutputError
+from src.scrsit.plugins.parsers.pdf.config import PdfParserSettings
+from src.scrsit.plugins.parsers.pdf.exceptions import PdfParsingError, MagicPdfExecutionError, MagicPdfOutputError
 
 
 logger = logging.getLogger(__name__)
